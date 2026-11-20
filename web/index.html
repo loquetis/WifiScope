@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="app-token" content="__APP_TOKEN__">
+  <title>WifiScope</title>
+  <link rel="icon" href="favicon.svg">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="app.css">
+  <script src="core.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand"><div class="name">WifiScope</div><p class="subtitle">Wi-Fi analyzer</p></div>
+      <nav aria-label="Sections"><ul class="nav-list">
+        <li><button type="button" class="nav-btn active" data-view="networks">Networks <span class="count" id="n-aps"></span></button></li>
+        <li><button type="button" class="nav-btn" data-view="channels">Channels</button></li>
+        <li><button type="button" class="nav-btn" data-view="signal">Signal graph</button></li>
+        <li><button type="button" class="nav-btn" data-view="settings">Settings &amp; about</button></li>
+      </ul></nav>
+      <div class="side-status" role="status" aria-live="polite"><div class="label">Wi-Fi</div><div id="side-text" class="small muted">Starting…</div></div>
+      <button type="button" id="btn-scan" class="side-btn">Scan now</button>
+      <div class="settings-block">
+        <label for="theme">Theme</label>
+        <select id="theme"><option value="dark">Dark</option><option value="light">Light</option><option value="green">Green</option><option value="amber">Amber</option><option value="blue">Blue</option><option value="mono">Mono</option></select>
+      </div>
+    </aside>
+    <main id="main" tabindex="-1">
+      <header class="topbar"><h1 id="view-title">Networks</h1><div id="status" class="status" role="status" aria-live="polite"></div></header>
+      <section id="view" class="view">
+        <div id="banners" class="stack tight"></div>
+
+        <div id="v-networks" class="stack">
+          <div id="cards" class="cards"></div>
+          <div class="toolbar">
+            <input type="search" id="q" class="wide grow" placeholder="Filter by network name or address…" aria-label="Filter networks" autocomplete="off" spellcheck="false" maxlength="100">
+            <div class="chips" role="group" aria-label="Band">
+              <button type="button" class="chip on" data-band="">All</button><button type="button" class="chip" data-band="2.4">2.4 GHz</button><button type="button" class="chip" data-band="5">5 GHz</button><button type="button" class="chip" data-band="6">6 GHz</button>
+            </div>
+            <label class="check"><input type="checkbox" id="f-open"> Open only</label>
+            <a id="btn-export" class="btn small" href="/api/export.csv" download="wifi-networks.csv">Export CSV</a>
+          </div>
+          <div class="panel table-panel"><table id="tbl">
+            <thead><tr>
+              <th><button type="button" class="th" data-sort="ssid">Network</button></th><th><button type="button" class="th" data-sort="bssid">Address (BSSID)</button></th>
+              <th><button type="button" class="th" data-sort="signal">Signal</button></th><th><button type="button" class="th" data-sort="channel">Ch</button></th>
+              <th><button type="button" class="th" data-sort="band">Band</button></th><th><button type="button" class="th" data-sort="security">Security</button></th><th><button type="button" class="th" data-sort="gen">Wi-Fi</button></th>
+            </tr></thead>
+            <tbody id="rows"></tbody>
+          </table><div id="empty" class="empty muted center" hidden></div></div>
+        </div>
+
+        <div id="v-channels" class="stack" hidden>
+          <p class="muted small">Each bump is one access point, drawn where it sits in the band. Tall bumps are strong signals. Overlapping bumps compete for airtime. The green band marks the least crowded choice; the dashed line is the channel you are on.</p>
+          <div id="bands" class="stack"></div>
+        </div>
+
+        <div id="v-signal" class="stack" hidden>
+          <div id="conn-card" class="panel"></div>
+          <div class="toolbar"><span class="muted small">Window</span>
+            <div class="chips" role="group" aria-label="Time window"><button type="button" class="chip" data-min="1">1 min</button><button type="button" class="chip on" data-min="5">5 min</button><button type="button" class="chip" data-min="15">15 min</button><button type="button" class="chip" data-min="60">1 hour</button></div>
+          </div>
+          <div class="panel"><canvas id="sig-chart" class="chart" height="300"></canvas><div id="sig-stats" class="small muted"></div></div>
+          <p class="small muted">Samples are taken every 2 seconds while this window is open. Shaded marks show where your PC switched to a different access point (roaming).</p>
+        </div>
+
+        <div id="v-settings" class="stack" hidden>
+          <div class="panel">
+            <h2>Scanning</h2>
+            <div class="grid2">
+              <label class="field"><span>Scan automatically every</span><select id="o-interval"><option value="10">10 seconds</option><option value="15">15 seconds</option><option value="30">30 seconds</option><option value="60">60 seconds</option><option value="0">Only when I press Scan now</option></select></label>
+              <label class="field"><span>Show signal as</span><select id="o-units"><option value="percent">Percent (like Windows)</option><option value="dbm">dBm (approximate)</option></select></label>
+            </div>
+            <p class="small muted">Scanning only runs while this window is open.</p>
+          </div>
+          <div class="panel">
+            <h2>About &amp; privacy</h2>
+            <ul class="plain">
+              <li>WifiScope reads the same Wi-Fi list Windows has (<code>netsh wlan show networks mode=bssid</code>) and asks the adapter for a fresh scan. It never connects to a network, changes a setting, or sends anything over the internet.</li>
+              <li>Nothing is saved to disk except these two settings. Scan results and the signal graph live in memory only.</li>
+              <li>On Windows 11, apps can only see nearby networks when <b>Location services</b> and <b>Let desktop apps access your location</b> are on. WifiScope tells you if that is the problem. It does not use your location for anything.</li>
+              <li>Signal in dBm is an estimate from Windows' percentage (percent ÷ 2 − 100). Channel width and exact transmit power are not available from Windows' text output.</li>
+              <li>Channel advice weighs nearby networks by overlap and strength. It ignores your own router's other radios, so it will not tell you to move away from yourself. Changing channels is done in your router's settings.</li>
+            </ul>
+            <div class="toolbar"><button type="button" id="btn-quit">Quit WifiScope</button></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <div id="modal-root"></div>
+  <div id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
